@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".subactivity_SETTINGS">
+
+        <!-- User 버튼 -->
+    <android.widget.Button
+        android:id="@+id/btnUser"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/round"
+        android:text="User"
+        android:textColor="#ffffff"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@+id/btnLanguage"
+        app:layout_constraintEnd_toStartOf="@+id/btnIOPort"
+        app:layout_constraintHeight_percent="0.20"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.30" />
+
+        <!-- I/O Port 버튼 -->
+    <android.widget.Button
+        android:id="@+id/btnIOPort"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/round"
+        android:text="I/O Port"
+        android:textColor="#ffffff"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@+id/btnFlowTable"
+        app:layout_constraintEnd_toStartOf="@+id/btnConnectionStatus"
+        app:layout_constraintHeight_percent="0.20"
+        app:layout_constraintStart_toEndOf="@+id/btnUser"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.30" />
+
+        <!-- Connection Status 버튼 -->
+
+    <!-- LANGUAGE 버튼 -->
+    <android.widget.Button
+        android:id="@+id/btnConnectionStatus"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/round"
+        android:text="Connection Status"
+        android:textColor="#ffffff"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@+id/btnExitSettings"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.20"
+        app:layout_constraintStart_toEndOf="@+id/btnIOPort"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.2"
+        app:layout_constraintWidth_percent="0.30" />
+
+    <android.widget.Button
+        android:id="@+id/btnLanguage"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/round"
+        android:text="LANGUAGE"
+        android:textColor="#ffffff"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@+id/btnExitSettings"
+        app:layout_constraintEnd_toStartOf="@+id/btnFlowTable"
+        app:layout_constraintHeight_percent="0.20"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnUser"
+        app:layout_constraintWidth_percent="0.45" />
+
+        <!-- Flow Table 버튼 -->
+    <android.widget.Button
+        android:id="@+id/btnFlowTable"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/round"
+        android:text="Flow Table"
+        android:textColor="#ffffff"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@+id/btnExitSettings"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.20"
+        app:layout_constraintStart_toEndOf="@+id/btnLanguage"
+        app:layout_constraintTop_toBottomOf="@+id/btnIOPort"
+        app:layout_constraintWidth_percent="0.45" />
+
+        <!-- EXIT 버튼 -->
+    <android.widget.Button
+        android:id="@+id/btnExitSettings"
+        android:layout_width="950dp"
+        android:layout_height="127dp"
+        android:background="@drawable/round"
+        android:text="EXIT"
+        android:textColor="#ffffff"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.20"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnLanguage"
+        app:layout_constraintWidth_percent="1" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
