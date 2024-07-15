@@ -59,10 +59,18 @@ public class AD5420 {
         clear.write(0);
 
         spi1.mode(Spi_Mode.SPI_MODE0);
-        spi1.frequency(1000000);                // 주파수가 너무 높으면 파형 왜곡
+        spi1.frequency(500000);                // 주파수가 너무 높으면 파형 왜곡
 
+
+        clearSpiBuffer();
     }
 
+    private void clearSpiBuffer() {
+        byte[] dummy = new byte[] {0, 0, 0, 0, 0, 0}; // 올바르게 배열을 초기화
+        latch1.write(0);
+        spi1.write(dummy);
+        latch1.write(1);
+    }
 
     void Daisyclear(){
 

@@ -37,8 +37,8 @@ android {
 
 dependencies {
 
-    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation ("com.squareup.retrofit2:retrofit:2.9.0")        // NodeJs 통신
+    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")  // NodeJs 통신
     implementation ("com.google.code.gson:gson:2.8.7")              //JSON 파싱, 생성 오픈소스 라이브러리 , GOOGLE
     implementation ("androidx.gridlayout:gridlayout:1.0.0")
     implementation("androidx.appcompat:appcompat:1.6.1")

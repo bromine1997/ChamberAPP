@@ -19,6 +19,7 @@ public class MyService extends Service {
     private Runnable adcRunnable;
     private Runnable i2cRunnable;
     private Runnable valveRunnable;
+    private Runnable co2Runnable;
 
     private static final String ACTION_TOGGLE_LED1 = "com.example.test.action.TOGGLE_LED1";
     private static final String ACTION_TOGGLE_LED2 = "com.example.test.action.TOGGLE_LED2";
@@ -30,10 +31,15 @@ public class MyService extends Service {
     private static final String ACTION_VENT_VALVE_DOWN = "com.example.test.action.VENT_VALVE_DOWN";
     private static final String ACTION_VENT_VALVE_UP = "com.example.test.action.VENT_VALVE_UP";
     private static final String ACTION_REQUEST_ADC_VALUES = "com.example.test.action.REQUEST_ADC_VALUES";
-
+    private static final String ACTION_CO2_UPDATE = "com.example.test.action.CO2_UPDATE";
     private PinController pinController;
     private MAX1032 max1032;
     private AD5420 ad5420;
+
+    private CO2sensor co2sensor;
+
+
+
 
     @Override
     public void onCreate() {
@@ -41,6 +47,7 @@ public class MyService extends Service {
         pinController = new PinController();
         max1032 = new MAX1032(1, 18); // SPI 1 bus => SPI5, LatchPin 설정
         ad5420 = new AD5420(0);
+        co2sensor = new CO2sensor(115200);
 
         handler = new Handler();
 
@@ -66,6 +73,7 @@ public class MyService extends Service {
             public void run() {
                 readAndBroadcastI2cValues();
                 handler.postDelayed(this, 500); // 0.5초마다 실행
+               
             }
         };
 
@@ -78,10 +86,19 @@ public class MyService extends Service {
             }
         };
 
+        co2Runnable = new Runnable() {
+            @Override
+            public void run() {
+                readAndBroadcastCo2Values();
+                handler.postDelayed(this, 2000); // 2초마다 실행
+            }
+        };
+
         // 처음 실행 (1초 후에 첫 실행)
         handler.postDelayed(adcRunnable, 1000);
         handler.postDelayed(i2cRunnable, 500);
         handler.postDelayed(valveRunnable, 1000);
+        handler.postDelayed(co2Runnable, 2000);
     }
 
     private void readAndBroadcastAdcValues() {
@@ -108,6 +125,19 @@ public class MyService extends Service {
             }
         }, 1000);
     }
+
+    private void readAndBroadcastCo2Values() {
+//        String co2Data = co2sensor.receive(10);  // CO2 데이터를 길이 10으로 읽기 (필요에 따라 조정)
+//        if (co2Data != null) {
+//            Intent intent = new Intent("com.example.test.CO2_UPDATE");
+//            intent.putExtra("co2Data", co2Data);
+//            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+//        } else {
+//            Log.e(TAG, "Failed to read CO2 data");
+//        }
+        co2sensor.loopbackTest("test");
+    }
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -169,6 +199,7 @@ public class MyService extends Service {
         handler.removeCallbacks(adcRunnable);
         handler.removeCallbacks(i2cRunnable);
         handler.removeCallbacks(valveRunnable);
+        handler.removeCallbacks(co2Runnable);
     }
 
     private void sendBroadcastUpdate(String status) {
