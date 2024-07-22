@@ -35,9 +35,7 @@ public class MyService extends Service {
     private PinController pinController;
     private MAX1032 max1032;
     private AD5420 ad5420;
-
     private CO2sensor co2sensor;
-
 
 
 
@@ -47,7 +45,7 @@ public class MyService extends Service {
         pinController = new PinController();
         max1032 = new MAX1032(1, 18); // SPI 1 bus => SPI5, LatchPin 설정
         ad5420 = new AD5420(0);
-        co2sensor = new CO2sensor(115200);
+        co2sensor = new CO2sensor();                //baud rate 9600,
 
         handler = new Handler();
 
@@ -59,6 +57,8 @@ public class MyService extends Service {
             e.printStackTrace();
         }
         ad5420.Daisy_Setup();
+
+        co2sensor.init();
 
         adcRunnable = new Runnable() {
             @Override
@@ -90,7 +90,7 @@ public class MyService extends Service {
             @Override
             public void run() {
                 readAndBroadcastCo2Values();
-                handler.postDelayed(this, 2000); // 2초마다 실행
+                handler.postDelayed(this, 1000); // 2초마다 실행
             }
         };
 
@@ -127,17 +127,8 @@ public class MyService extends Service {
     }
 
     private void readAndBroadcastCo2Values() {
-//        String co2Data = co2sensor.receive(10);  // CO2 데이터를 길이 10으로 읽기 (필요에 따라 조정)
-//        if (co2Data != null) {
-//            Intent intent = new Intent("com.example.test.CO2_UPDATE");
-//            intent.putExtra("co2Data", co2Data);
-//            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-//        } else {
-//            Log.e(TAG, "Failed to read CO2 data");
-//        }
-        co2sensor.loopbackTest("test");
+        co2sensor.loopbackCommand("Q\r\n");
     }
-
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {

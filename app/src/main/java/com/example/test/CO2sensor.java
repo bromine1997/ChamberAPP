@@ -5,98 +5,173 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import mraa.Uart;
 import mraa.UartParity;
 
 public class CO2sensor {
-    private static final String TAG = "CO2sensor";
-    private static final char header_H = 0xFE ; //
-    private static final char device_Addr = 0xA6; //
-    private static final char data_Length = 0x00; //
-    private static final char get_Dis_CMD = 0x01; //
-    private static final char checksum = (device_Addr+data_Length+get_Dis_CMD); //
+    private static final String TAG = "SprintIR";
+    private static final int SPRINT_BUFSIZE = 15; // 작은 버퍼 크기로 설정
+
     private Uart UART0; // UART 인터페이스 객체
 
-    private HandlerThread uartHandlerThread; // 스레드 생성
-    private Handler uartHandler; // 스레드 핸들러
+    private BlockingQueue<String> rawDataQueue = new LinkedBlockingQueue<>(4096);
+    private ExecutorService dataReadingExecutor;
+    private ExecutorService dataProcessingExecutor;
 
-    public CO2sensor(long baudrate) {
-        UART0 = new Uart(0); // UART0 초기화
-        if (UART0 != null) {
-            UART0.setBaudRate(baudrate);
-            UART0.setMode(8, UartParity.UART_PARITY_NONE, 1);
-            UART0.setFlowcontrol(false, false);
-            UART0.setTimeout(1000, 1000, 1000); // 읽기 및 쓰기 타임아웃 설정 (1초)
-            UART0.setNonBlocking(false); // Blocking 모드 설정
-            Log.d(TAG, "UART0 initialized and baudrate set.");
-        } else {
-            Log.e(TAG, "Failed to initialize UART");
-        }
-    }
+    private volatile boolean running = true;
 
 
-    public void loopbackTest(final String message) {
-        new LoopbackTask().execute(message);
-    }
-
-    private class LoopbackTask extends AsyncTask<String, Void, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            String message = params[0];
-            try {
-                // 데이터 전송
-                UART0.writeStr(message);
-                Log.d(TAG, "Sent: " + message);
-
-                // 데이터 가용성 확인
-                if (UART0.dataAvailable(1000)) { // 1초 동안 데이터 가용성 대기
-                    // 데이터 수신 (전송된 문자열과 동일한 길이로 읽음)
-                    return UART0.readStr(message.length());
-                } else {
-                    Log.e(TAG, "No data available for reading");
-                    return null;
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "UART Communication Error", e);
-                return null;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            if (result != null) {
-                Log.d(TAG, "Received: " + result);
-            } else {
-                Log.e(TAG, "No data received");
-            }
-        }
-    }
-
-    public void send(final String message) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    UART0.writeStr(message);
-                    Log.d(TAG, "Sent: " + message);
-                } catch (Exception e) {
-                    Log.e(TAG, "UART Communication Error", e);
-                }
-            }
-        }).start();
-    }
-
-    public String receive(int length) {
+    public CO2sensor() {
         try {
-            if (UART0.dataAvailable(1000)) { // 1초 동안 데이터 가용성 대기
-                return UART0.readStr(length);
+            UART0 = new Uart(0);
+            if (UART0 != null) {
+                UART0.setBaudRate(9600);
+                UART0.setMode(8, UartParity.UART_PARITY_NONE, 1);
+                UART0.setFlowcontrol(false,false);
+                Log.d(TAG, "UART0 initialized and baudrate set.");
             } else {
-                Log.e(TAG, "No data available for reading");
-                return null;
+                Log.e(TAG, "Failed to initialize UART");
             }
         } catch (Exception e) {
-            Log.e(TAG, "UART Communication Error", e);
-            return null;
+            Log.e(TAG, "UART initialization error", e);
+        }
+        dataReadingExecutor = Executors.newSingleThreadExecutor();
+        dataProcessingExecutor = Executors.newSingleThreadExecutor();
+    }
+
+
+    public void init() {
+        try {
+            calibration();
+            Mode_2_select();
+
+           // startDataReadingTask();
+           // startDataProcessingTask();
+        } catch (Exception e) {
+            Log.e(TAG, "Initialization error", e);
+        }
+    }
+
+    public void loopbackCommand(String message) {
+        dataReadingExecutor.submit(() -> {
+            try {
+                String recieveStr = "null";
+
+                flush();
+                UART0.writeStr(message);
+
+                Thread.sleep(10); // 데이터 도착 시간 대기
+
+                while (!UART0.dataAvailable());
+
+                recieveStr = UART0.readStr(50); // 수신 데이터 읽기
+                Log.d(TAG, "Receive: " + recieveStr );
+
+
+            } catch (Exception e) {
+                Log.e(TAG, "Loopback test error", e);
+            }
+        });
+    }
+
+    public  void Mode_2_select(){
+        loopbackCommand("K 2\r\n");
+    }
+
+    public void calibration(){
+        loopbackCommand("A 32\r\n");  // send: "A 32\r\n"  필터 설정
+
+        loopbackCommand("Q\r\n");  // send: "G\r\n"      calibration 400ppm
+
+    }
+
+    private void startDataReadingTask() {
+        flush();
+        dataReadingExecutor.submit(() -> {
+            while (running) {
+                try {
+                    if (UART0.dataAvailable()) {
+                        serialEvent2();
+                    } else {
+                        Thread.sleep(10);  // Wait for a short period before checking again
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Data reading error", e);
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+        });
+    }
+
+    private void serialEvent2() {
+        try {
+            while (UART0.dataAvailable()) {
+                String inStr = UART0.readStr(SPRINT_BUFSIZE); // 작은 버퍼 크기로 읽기
+                Log.d(TAG, "Raw data: " + inStr);
+                if (inStr != null && inStr.length() > 0) {
+                    rawDataQueue.offer(inStr);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error reading UART data", e);
+        }
+    }
+    public String getData() {
+        try {
+            return rawDataQueue.take();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "";
+        }
+    }
+
+    private void startDataProcessingTask() {
+        dataProcessingExecutor.submit(() -> {
+            while (running) {
+                try {
+                    String inStr = rawDataQueue.take();
+                    if (inStr.contains("?")) {
+                        Log.e(TAG, "Invalid data received: " + inStr);
+                        continue; // 무효한 데이터를 무시하고 다음 데이터를 읽음
+                    }
+
+                    StringBuilder inputString = new StringBuilder();
+                    boolean stringComplete = false;
+                    for (char inChar : inStr.toCharArray()) {
+                        inputString.append(inChar);
+                        if (inChar == '\n') {
+                            stringComplete = true;
+                        }
+                    }
+
+                    if (stringComplete) {
+                        Log.d(TAG, "String complete, adding to queue: " + inputString.toString());
+                        rawDataQueue.offer(inputString.toString().trim());
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    Log.e(TAG, "Data processing interrupted", e);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error processing UART data", e);
+                }
+            }
+        });
+    }
+
+    public void flush() {
+        if (UART0 != null) {
+            while (UART0.dataAvailable()) {
+                UART0.readStr(SPRINT_BUFSIZE);
+            }
         }
     }
 
